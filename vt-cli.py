@@ -7,7 +7,7 @@ import sys
 import textwrap
 
 import vt
-from colorama import Fore, init
+from colorama import Fore, init, Back
 from dotenv import load_dotenv
 from prettytable import PrettyTable
 
@@ -51,38 +51,38 @@ def banner():
 
 
 def url_output(url, url_obj):
-    global output
-    output = textwrap.dedent(f"""
-    Analysis for: {y + url + Fore.RESET}
-
-    First Submission Date: {url_obj.first_submission_date}
-    Last Submission Date: {url_obj.last_submission_date}
-    Times Submitted: {url_obj.times_submitted}
-    Content Length: {url_obj.last_http_response_content_length} Bytes
-    Response Code: {url_obj.last_http_response_code}
-    Stats: {url_obj.last_analysis_stats}
-    """)
+    table = PrettyTable()
+    table.field_names = ["Attribute", "Value"]
+    table.align = "l"
+    table.add_row(["First Submission Date", url_obj.first_submission_date])
+    table.add_row(["Last Submission Date", url_obj.last_submission_date])
+    table.add_row(["Times Submitted", url_obj.times_submitted])
+    table.add_row(["Content Length", f"{url_obj.last_http_response_content_length} Bytes"])
+    table.add_row(["Response Code", url_obj.last_http_response_code])
+    stats = url_obj.last_analysis_stats
+    stats_str = f"Malicious: {stats['malicious']}, Suspicious: {stats['suspicious']}, Harmless: {stats['harmless']}"
+    table.add_row(["Stats", stats_str])
+    return table
 
 
 def hash_output(hash, hash_obj):
-    global output
-    output = textwrap.dedent(f"""
-    Analysis for: {y + hash + Fore.RESET}
+    table = PrettyTable()
+    table.field_names = ["Attribute", "Value"]
+    table.align = "l"
+    table.add_row(["First Submission Date", hash_obj.first_submission_date])
+    table.add_row(["Last Submission Date", hash_obj.last_submission_date])
+    table.add_row(["Times Submitted", hash_obj.times_submitted])
+    table.add_row(["File Size", f"{hash_obj.size} Bytes"])
+    table.add_row(["File Type", hash_obj.type_tag])
+    table.add_row(["File Type Description", hash_obj.type_description])
+    stats = hash_obj.last_analysis_stats
+    stats_str = f"Malicious: {stats['malicious']}, Suspicious: {stats['suspicious']}, Harmless: {stats['harmless']}"
+    table.add_row(["Stats", stats_str])
+    return table
 
-    First Submission Date: {hash_obj.first_submission_date}
-    Last Submission Date: {hash_obj.last_submission_date}
-    Times Submitted: {hash_obj.times_submitted}
-    File Size: {hash_obj.size}
-    File Type: {hash_obj.type_tag}
-    File Type Description: {hash_obj.type_description}
-    Stats: {hash_obj.last_analysis_stats}
-    """)
 
-
-def out_printer(output):
-    output_table = PrettyTable(["Results"], align="l")
-    output_table.add_row([output])
-    print(output_table)
+def out_printer(table):
+    print(table.get_string())
 
 
 def url_last_analysis(url: str, client: vt.Client):
@@ -94,8 +94,9 @@ def url_last_analysis(url: str, client: vt.Client):
         url_id = vt.url_id(url)
         url_obj = client.get_object("/urls/{}", url_id)
 
-        url_output(url, url_obj)
-        out_printer(output)
+        table = url_output(url, url_obj)
+        print(f"\nAnalysis for: {y + url + Fore.RESET}\n")
+        out_printer(table)
 
     except:
         print(url_err)
@@ -117,8 +118,9 @@ def url_scanner(url: str, client: vt.Client):
         url_id = vt.url_id(url)
         url_obj = client.get_object("/urls/{}", url_id)
 
-        url_output(url, url_obj)
-        out_printer(output)
+        table = url_output(url, url_obj)
+        print(f"\nAnalysis for: {y + url + Fore.RESET}\n")
+        out_printer(table)
        
     except:
         print(url_err)
@@ -136,8 +138,9 @@ def file_last_analysis(hash, client: vt.Client):
     try:
         hash_obj = client.get_object("/files/{}", hash)
 
-        hash_output(hash, hash_obj)
-        print(output)
+        table = hash_output(hash, hash_obj)
+        print(f"\nAnalysis for: {y + hash + Fore.RESET}\n")
+        out_printer(table)
         
     except:
         print(hash_err)
@@ -159,18 +162,9 @@ def file_scanner(path, client: vt.Client):
                 client.scan_file(f)
                 hash_obj = client.get_object("/files/{}", hash)
 
-                output = textwrap.dedent(f"""
-                Analysis for: {y + os.path.basename(path) + Fore.RESET}
-
-                First Submission Date: {hash_obj.first_submission_date}
-                Last Submission Date: {hash_obj.last_submission_date}
-                Times Submitted: {hash_obj.times_submitted}
-                File Size: {hash_obj.size}
-                File Type Description: {hash_obj.type_description}
-                Stats: {hash_obj.last_analysis_stats}
-                """)
-
-                print(output) 
+                table = hash_output(os.path.basename(path), hash_obj)
+                print(f"\nAnalysis for: {y + os.path.basename(path) + Fore.RESET}\n")
+                out_printer(table)
                 f.close()
 
     except FileNotFoundError:
