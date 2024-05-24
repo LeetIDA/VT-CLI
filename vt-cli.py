@@ -7,7 +7,7 @@ import sys
 import textwrap
 
 import vt
-from colorama import Fore, init, Back
+from colorama import Fore, init
 from dotenv import load_dotenv
 from prettytable import PrettyTable
 
